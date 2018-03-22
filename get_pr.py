@@ -5,10 +5,10 @@ import csv
 import os
 
 #変数の宣言
-#owner = input('Please type owner: ')
-owner = 'apc-kamibayashi'
-#repo = input('Please type repository: ')
-repo = 'test'
+owner = input('Please type owner: ')
+#owner = 'apc-kamibayashi'
+repo = input('Please type repository: ')
+#repo = 'test'
 client_id = input('Please type client_id: ')
 client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
@@ -21,11 +21,12 @@ api_param = {'題名':'title',
      'コメント数':'comments'}
 
 #CSVファイルのcolomnを作る
-os.remove(file_name)
+if os.path.exists(file_name):
+    os.remove(file_name)
 
 with open(file_name, 'a') as f:
     for i,key in enumerate(api_param):
-        print(i)
+        #print(i)
         f.write(key)
         if i < len(api_param) - 1:
             f.write(',')
@@ -52,43 +53,36 @@ github_url = 'https://api.github.com/repos/%s/%s/pulls' % (owner,repo)
 payload={'access_token':access_token}
 res = requests.get(github_url,params=payload)
 pr_list_json_data = json.loads(res.text) #なぜかこのPRはリスト型のため注意
+print(pr_list_json_data)
 max_pr = pr_list_json_data[0]['number'] #numberはint型で取れる
 
+#テスト用にファイルに出力
+f = open("output.json", "w")
+json.dump(pr_list_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
+'''
 #プルリクエストを取得
 for i in range(1,max_pr+1):
-    print(i)
+    #print(i)
     github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
     payload={'access_token':access_token}
     res = requests.get(github_url,params=payload)
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
     #print(pr_json_data[api_param[0]])
 
-    with open(file_name, 'a') as f:
-        for i, key in enumerate(api_param):
-            print(i)
-            f.write(key)
-            if i < len(api_param) - 1:
-                f.write(',')
-        f.write('\n')
-        f.closed
-
     #CSVファイルへの書き込み
     with open(file_name,'a') as f:
         for i,value in enumerate(api_param):
-            print(i)
-            print(api_param[value])
+            #print(i)
+            #print(api_param[value])
             if isinstance(api_param[value],list) == 1:
-                print(pr_json_data[api_param[value][0]][api_param[value][1]])
-                string = pr_json_data[api_param[value][0]][api_param[value][1]]
-                f.write(string)
+                #print(pr_json_data[api_param[value][0]][api_param[value][1]])
+                f.write(pr_json_data[api_param[value][0]][api_param[value][1]])
             elif isinstance(pr_json_data[api_param[value]],int) == 1:
-                print(pr_json_data[api_param[value]])
-                string = str(pr_json_data[api_param[value]])
-                f.write(string)
+                #print(pr_json_data[api_param[value]])
+                f.write(str(pr_json_data[api_param[value]]))
             elif isinstance(pr_json_data[api_param[value]],type(None)) != 1:
-                print(pr_json_data[api_param[value]])
-                string = pr_json_data[api_param[value]]
-                f.write(string)
+                #print(pr_json_data[api_param[value]])
+                f.write(pr_json_data[api_param[value]])
             if i < len(api_param)-1:
                  f.write(',')
         f.write('\n')
@@ -107,7 +101,7 @@ for i in range(1,max_pr+1):
 
 #1からプルリクナンバーのないところまで("message": "Not Found")
 #title,
-
+'''
 #テスト用にファイルに出力
 #f = open("output.json", "w")
 #json.dump(pr_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
