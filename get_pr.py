@@ -63,6 +63,15 @@ for i in range(1,max_pr+1):
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
     #print(pr_json_data[api_param[0]])
 
+    with open(file_name, 'a') as f:
+        for i, key in enumerate(api_param):
+            print(i)
+            f.write(key)
+            if i < len(api_param) - 1:
+                f.write(',')
+        f.write('\n')
+        f.closed
+
     #CSVファイルへの書き込み
     with open(file_name,'a') as f:
         for i,value in enumerate(api_param):
