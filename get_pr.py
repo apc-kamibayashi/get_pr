@@ -2,16 +2,37 @@ import sys
 import json
 import requests
 import csv
+import os
 
 #変数の宣言
 #owner = input('Please type owner: ')
 owner = 'apc-kamibayashi'
 #repo = input('Please type repository: ')
 repo = 'test'
-client_id = input('Please type client_id: ')
-client_secret = input('Please type client_secret: ')
+client_id = '1336c49948d0f319a057'
+client_secret = '8144ec99e92dcd4d3a3a71791fe29b20678dacb6'
+#client_id = input('Please type client_id: ')
+#client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
-scope = 'repo'
+scope = 'repo'#APIから取る値をリスト型で定義しておく
+file_name = 'get_pr.csv'
+api_param = {'題名':'title',
+     '実施者':['user','login'],
+     'PRオープン日時':'created_at',
+     'PRクローズ日時':'closed_at',
+     'コメント数':'comments'}
+
+#CSVファイルのcolomnを作る
+os.remove(file_name)
+
+with open(file_name, 'a') as f:
+    for i,key in enumerate(api_param):
+        print(i)
+        f.write(key)
+        if i < len(api_param) - 1:
+            f.write(',')
+    f.write('\n')
+f.closed
 
 #アクセストークンを取得
 # 認証URLをブラウザに打ってリダイレクトURLのcodeを入力
@@ -21,36 +42,57 @@ print('please set authorize_url on your browser and enter')
 code = input('Please type code: ')
 access_token_url = 'https://github.com/login/oauth/access_token'
 payload={'code':code, 'client_id':client_id, 'client_secret':client_secret}
+
 res = requests.post(access_token_url,params=payload)
 data = res.text.split('&')
 print(data) #エラー確認用に一時的に出力
-access_token = data[0].strip('access_token=')
-print('access_token: '+ access_token) #時々なぜか前後がかける…
+access_token = data[0].split('=')[1] #文字列の「access_token=」を削除
+print('access_token: '+ access_token)
 
-#プルリクエストを取得
-i = str(2)
-github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + i
+#プルリクの最大数を定義
+github_url = 'https://api.github.com/repos/%s/%s/pulls' % (owner,repo)
 payload={'access_token':access_token}
 res = requests.get(github_url,params=payload)
-json_data = json.loads(res.text) #json_dataは辞書型
-print(json_data)
-print(json_data['title'] + ',' + json_data['user']['login'])
+pr_list_json_data = json.loads(res.text) #なぜかこのPRはリスト型のため注意
+max_pr = pr_list_json_data[0]['number'] #numberはint型で取れる
 
-#CSVファイルへの書き込み
-#csv_list.append(json_data['title'])
-#csv_list.append(json_data['user']['login'])
-#+ json_data['created_at'] + json_data['closed_at'] + json_data['comments']
+#プルリクエストを取得
+for i in range(1,max_pr+1):
+    print(i)
+    github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
+    payload={'access_token':access_token}
+    res = requests.get(github_url,params=payload)
+    pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
+    #print(pr_json_data[api_param[0]])
 
-#f = csv.writer(get_pr.csv)
+    #CSVファイルへの書き込み
+    with open(file_name,'a') as f:
+        for i,value in enumerate(api_param):
+            print(i)
+            print(api_param[value])
+            if isinstance(api_param[value],list) == 1:
+                print(pr_json_data[api_param[value][0]][api_param[value][1]])
+                string = pr_json_data[api_param[value][0]][api_param[value][1]]
+                f.write(string)
+            elif isinstance(pr_json_data[api_param[value]],int) == 1:
+                print(pr_json_data[api_param[value]])
+                string = str(pr_json_data[api_param[value]])
+                f.write(string)
+            elif isinstance(pr_json_data[api_param[value]],type(None)) != 1:
+                print(pr_json_data[api_param[value]])
+                string = pr_json_data[api_param[value]]
+                f.write(string)
+            if i < len(api_param)-1:
+                 f.write(',')
+        f.write('\n')
+    f.closed
 
-#data = [{'題名'	'誰'	開始日時	クローズ日時	コメント数}]
+    # #data = [{'題名'	'誰'	開始日時	クローズ日時	コメント数}]
 #header = data[0].keys()#ヘッダー用のデータを作っておく
 
 #cols = json_data[0].keys()
 #print(cols)
 
-with open('get_pr.csv','w') as f:
-    f.write(json_data['title'] + ',' + json_data['user']['login'] + ',' + json_data['created_at'] + ',' + json_data['closed_at'] + ',' + str(json_data['comments']) + '\n')
 
     # そのままだとヘッダーは書き込まれないので、ここで書く
     #header_row = {"k":k for k in header}
@@ -61,4 +103,4 @@ with open('get_pr.csv','w') as f:
 
 #テスト用にファイルに出力
 #f = open("output.json", "w")
-#json.dump(json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
+#json.dump(pr_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
