@@ -8,8 +8,6 @@ import csv
 owner = 'apc-kamibayashi'
 #repo = input('Please type repository: ')
 repo = 'test'
-
-
 client_id = input('Please type client_id: ')
 client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
@@ -35,7 +33,10 @@ github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + i
 payload={'access_token':access_token}
 res = requests.get(github_url,params=payload)
 json_data = json.loads(res.text) #json_dataは辞書型
-#csv_list = []
+print(json_data)
+print(json_data['title'] + ',' + json_data['user']['login'])
+
+#CSVファイルへの書き込み
 #csv_list.append(json_data['title'])
 #csv_list.append(json_data['user']['login'])
 #+ json_data['created_at'] + json_data['closed_at'] + json_data['comments']
@@ -45,16 +46,15 @@ json_data = json.loads(res.text) #json_dataは辞書型
 #data = [{'題名'	'誰'	開始日時	クローズ日時	コメント数}]
 #header = data[0].keys()#ヘッダー用のデータを作っておく
 
-with open('get_pr.csv','wb') as f:
-    # headerも渡してやる
-    # 渡した順番が列の順番になる
-    writer = csv.DictWriter(f)
+#cols = json_data[0].keys()
+#print(cols)
+
+with open('get_pr.csv','w') as f:
+    f.write(json_data['title'] + ',' + json_data['user']['login'] + ',' + json_data['created_at'] + ',' + json_data['closed_at'] + ',' + str(json_data['comments']) + '\n')
 
     # そのままだとヘッダーは書き込まれないので、ここで書く
     #header_row = {"k":k for k in header}
-    writer.writerow()
-
-
+    #writer.writerow()
 
 #1からプルリクナンバーのないところまで("message": "Not Found")
 #title,
