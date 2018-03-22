@@ -9,10 +9,8 @@ import os
 owner = 'apc-kamibayashi'
 #repo = input('Please type repository: ')
 repo = 'test'
-client_id = '1336c49948d0f319a057'
-client_secret = '8144ec99e92dcd4d3a3a71791fe29b20678dacb6'
-#client_id = input('Please type client_id: ')
-#client_secret = input('Please type client_secret: ')
+client_id = input('Please type client_id: ')
+client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
 scope = 'repo'#APIから取る値をリスト型で定義しておく
 file_name = 'get_pr.csv'
