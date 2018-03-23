@@ -1,5 +1,3 @@
-#test
-
 import sys
 import json
 import requests
@@ -8,12 +6,12 @@ import os
 import datetime
 
 #github関連変数の宣言
-#owner = input('Please type owner: ')
+owner = input('Please type owner: ')
 #owner = 'apc-kamibayashi'
-owner = 'tamac-io'
-#repo = input('Please type repository: ')
+#owner = 'tamac-io'
+repo = input('Please type repository: ')
 #repo = 'test'
-repo = 'logging-controller'
+#repo = 'logging-controller'
 client_id = input('Please type client_id: ')
 client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
@@ -25,7 +23,7 @@ file_name = 'get_pr_{0:%Y%m%d-%H%M%S}.csv'.format(now)
 api_param = {
     u'No.':'number',
     u'プルリク名':'title',
-    u'実施者':['user','login'], #取りたいJSONが二段の場合リストで定義。今のところ二段まで。
+    u'実施者':['user','login'], #取りたいJSONが二段の場合リストで定義。今のところ二段まで。もうちょい工夫したい。
     u'PRオープン日時':'created_at',
     u'PRクローズ日時':'closed_at',
     u'レビューコメント数':'review_comments',
@@ -63,17 +61,16 @@ data = res.text.split('&')
 access_token = data[0].split('=')[1] #文字列の「access_token=」を削除
 #print('access_token: '+ access_token) #エラー確認用に一時的に出力
 
-#プルリクの最大数を定義
-github_url = 'https://api.github.com/repos/%s/%s/pulls' % (owner,repo)
-payload={'access_token':access_token}
-res = requests.get(github_url,params=payload)
-pr_list_json_data = json.loads(res.text) #なぜかこのPRはリスト型のため注意
-#print(pr_list_json_data) #エラー確認用に一時的に出力
-max_pr = pr_list_json_data[0]['number'] #numberはint型で取れる
-
-#テスト用にファイルに出力
-#f = open("output.json", "w")
-#json.dump(pr_list_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
+#プルリクの最大数を定義ver2：オープンがなくても抜けられる
+for i in range(1,65535): #とりあえず65535くらいに設定
+    #print(i) #エラー確認用に一時的に出力
+    github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
+    res = requests.get(github_url,params=payload)
+    pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
+    #print(pr_json_data) #エラー確認用に一時的に出力
+    if ('message' in pr_json_data) == 1:
+        max_pr = i - 1
+        break
 
 #プルリクエストを取得
 for i in range(1,max_pr+1):
@@ -102,13 +99,12 @@ for i in range(1,max_pr+1):
                  f.write(',')
         f.write('\n')
     f.closed
-''''''
+'''
 github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner, repo) + str(21) #+ '/files'
 payload = {'access_token': access_token}
 res = requests.get(github_url, params=payload)
 pr_json_data = json.loads(res.text)  # 個別PRのjson_dataは辞書型
-
+'''
 #テスト用にファイルに出力
-f = open("output.json", "w")
-json.dump(pr_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
-''''''
+#f = open("output.json", "w")
+#json.dump(pr_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
