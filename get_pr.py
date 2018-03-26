@@ -15,7 +15,7 @@ def check_change_file(access_token,url,file_num,file_param):
     d = {}
     for i in range(file_num):
         for value in file_param.values():
-            print(prfile_json_data[i][value])
+            #print(prfile_json_data[i][value]) #エラー確認用に一時的に出力
             d[value] = prfile_json_data[i][value]
         l.append(d.copy())
     return l
@@ -27,10 +27,8 @@ owner = 'apc-kamibayashi'
 #repo = input('Please type repository: ')
 repo = 'test'
 #repo = 'logging-controller'
-#client_id = input('Please type client_id: ')
-#client_secret = input('Please type client_secret: ')
-client_id = '4a5f90677075bf99b238'
-client_secret = 'b42252db0dc96fe5aee331ed86bedb926cdac330'
+client_id = input('Please type client_id: ')
+client_secret = input('Please type client_secret: ')
 #socpe = input('Please type scope: ')
 scope = 'repo'#APIから取る値をリスト型で定義しておく
 
@@ -80,7 +78,7 @@ for i in range(1,65535): #とりあえず65535くらいに設定
     if ('message' in pr_json_data) == 1:
         max_pr = i - 1
         break
-print(max_pr)
+#print(max_pr) #エラー確認用に一時的に出力
 
 '''
 #columnのためにchanged_filesの最大数をとる
@@ -115,41 +113,49 @@ f.closed
 string = ''
 
 #プルリクエストを取得
+#プルリクの数だけループを回す
 for i in range(1,max_pr+1):
-    print(i) #エラー確認用に一時的に出力
+    print('a:' + str(i)) #エラー確認用に一時的に出力
     github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
     payload={'access_token':access_token}
     res = requests.get(github_url,params=payload)
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
-    print(pr_json_data) #エラー確認用に一時的に出力
+    #print(pr_json_data) #エラー確認用に一時的に出力
 
     #CSVファイルへの書き込み
     with open(file_name,'a') as f:
-        for i,value in enumerate(api_param):
-            print(i) #エラー確認用に一時的に出力
-            print(api_param[value]) #エラー確認用に一時的に出力
+
+        #1つのプルリクの中の項目を取りたい項目(api_param)だけ取得する
+        for j,value in enumerate(api_param):
+            print('b:' + str(i) + '-' + str(j)) #エラー確認用に一時的に出力
+            #print(api_param[value]) #エラー確認用に一時的に出力
             if isinstance(api_param[value],list) == 1: #取りたいJSONが二段だった場合(二段まで対応)
-                print(pr_json_data[api_param[value][0]][api_param[value][1]]) #エラー確認用に一時的に出力
+                #print(pr_json_data[api_param[value][0]][api_param[value][1]]) #エラー確認用に一時的に出力
                 string = string + pr_json_data[api_param[value][0]][api_param[value][1]]
             elif isinstance(pr_json_data[api_param[value]],int) == 1: #取ったデータが整数だった場合
-                print(pr_json_data[api_param[value]]) #エラー確認用に一時的に出力
+                #print(pr_json_data[api_param[value]]) #エラー確認用に一時的に出力
                 string = string + str(pr_json_data[api_param[value]])
             elif isinstance(pr_json_data[api_param[value]],type(None)) != 1: #取ったデータがNULLじゃない場合
-                print(pr_json_data[api_param[value]]) #エラー確認用に一時的に出力
+                #print(pr_json_data[api_param[value]]) #エラー確認用に一時的に出力
                 string = string + pr_json_data[api_param[value]]
             string = string + ','
+
+        #changed_filesがあった場合の追加処理
         if 'changed_files' in api_param.values():
             change_file = check_change_file(access_token, github_url, pr_json_data['changed_files'], file_param) #change_fileは
-            for j in range(pr_json_data['changed_files']):
-                print(j)
+
+            #changed_filesの数だけ内容を取得する
+            for k in range(pr_json_data['changed_files']):
+                print('c:' + str(i) + '-' + str(j) + '-' + str(k))
                 for value in file_param.values():
-                    print(value)
-                    if isinstance(change_file[j][value], int) == 1:  # 取ったデータが整数だった場合
-                        string = string + str(change_file[j][value]) + ','
+                    #print(value) #エラー確認用に一時的に出力
+                    if isinstance(change_file[k][value], int) == 1:  # 取ったデータが整数だった場合
+                        string = string + str(change_file[k][value]) + ','
                     else:
-                        string = string + change_file[j][value] + ','
+                        string = string + change_file[k][value] + ','
         string = string[:-1] + '\n'
         f.write(string)
+        string = ''
     f.closed
 
 
