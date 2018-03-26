@@ -1,6 +1,3 @@
-#test
-#test2
-
 import sys
 import json
 import requests
@@ -8,30 +5,38 @@ import csv
 import os
 import datetime
 
-def check_change_file(access_token,url,file_num,file_param):
+def check_change_file(access_token,url,file_num,file_param,pager):
     """リスト型で各リストはファイルの追加・削除の辞書型で返す"""
-    prfile_url = url + '/files'
-    payload = {'access_token': access_token}
-    res = requests.get(prfile_url, params=payload)
-    prfile_json_data = json.loads(res.text)  #ファイルはリスト型
     l = []
     d = {}
-    for i in range(file_num):
-        for value in file_param.values():
-            #print(prfile_json_data[i][value]) #エラー確認用に一時的に出力
-            d[value] = prfile_json_data[i][value]
-        l.append(d.copy())
+    for page in range(1,((file_num - 1) // pager)+2):
+        prfile_url = url + '/files'
+        pager_str = str(pager)
+        page_str = str(page)
+        payload = {'access_token': access_token,'per_page':pager_str,'page':page_str}
+        res = requests.get(prfile_url, params=payload)
+        prfile_json_data = json.loads(res.text)  #ファイルはリスト型
+        max_num = file_num - ((page - 1) * pager)
+        if max_num > pager:
+            max_num = pager
+        for i in range(max_num):
+            for value in file_param.values():
+                d[value] = prfile_json_data[i][value]
+            l.append(d.copy())
+            #print(l)
     return l
 
 #github関連変数の宣言
 #owner = input('Please type owner: ')
-owner = 'apc-kamibayashi'
-#owner = 'tamac-io'
+#owner = 'apc-kamibayashi'
+owner = 'tamac-io'
 #repo = input('Please type repository: ')
-repo = 'test'
-#repo = 'logging-controller'
-client_id = input('Please type client_id: ')
-client_secret = input('Please type client_secret: ')
+#repo = 'test'
+repo = 'logging-controller'
+#client_id = input('Please type client_id: ')
+#client_secret = input('Please type client_secret: ')
+client_id = '4a5f90677075bf99b238'
+client_secret = 'b42252db0dc96fe5aee331ed86bedb926cdac330'
 #socpe = input('Please type scope: ')
 scope = 'repo'#APIから取る値をリスト型で定義しておく
 
@@ -56,6 +61,9 @@ file_param = { #取りたいファイル変更分パラメータのカラム名�
     u'削除': 'deletions'
 }
 
+#githubのpagerのデフォルトは30、URLに?page=1&per_page=100をつけると表示変更。githubの仕様で100が最大値
+pager = 100
+
 #アクセストークンを取得
 # 認証URLをブラウザに打ってリダイレクトURLのcodeを入力
 auth_url = 'https://github.com/login/oauth/authorize?' + 'client_id=' + client_id + '&' + 'scope=' + scope
@@ -67,14 +75,15 @@ payload={'code':code, 'client_id':client_id, 'client_secret':client_secret}
 
 res = requests.post(access_token_url,params=payload)
 data = res.text.split('&')
-#print(data) #エラー確認用に一時的に出力
+print(data) #エラー確認用に一時的に出力
 access_token = data[0].split('=')[1] #文字列の「access_token=」を削除
-#print('access_token: '+ access_token) #エラー確認用に一時的に出力
+print('access_token: '+ access_token) #エラー確認用に一時的に出力
 
 #プルリクの最大数を定義ver2：オープンがなくても抜けられる
 for i in range(1,65535): #とりあえず65535くらいに設定
     #print(i) #エラー確認用に一時的に出力
     github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
+    payload={'access_token':access_token, 'per_page':pager}
     res = requests.get(github_url,params=payload)
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
     #print(pr_json_data) #エラー確認用に一時的に出力
@@ -83,18 +92,19 @@ for i in range(1,65535): #とりあえず65535くらいに設定
         break
 #print(max_pr) #エラー確認用に一時的に出力
 
-'''
 #columnのためにchanged_filesの最大数をとる
+max_changed_files = 0
 for i in range(1,65535): #とりあえず65535くらいに設定
     #print(i) #エラー確認用に一時的に出力
     github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
+    payload={'access_token':access_token, 'per_page':pager}
     res = requests.get(github_url,params=payload)
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
-    #print(pr_json_data) #エラー確認用に一時的に出力
     if ('message' in pr_json_data) == 1:
-        max_pr = i - 1
         break
-'''
+    if max_changed_files < pr_json_data['changed_files']:
+        max_changed_files = pr_json_data['changed_files']
+
 
 #テスト用にファイルに出力
 #f = open("output.json", "w")
@@ -104,23 +114,27 @@ for i in range(1,65535): #とりあえず65535くらいに設定
 if os.path.exists(file_name):
     os.remove(file_name)
 
+string = ''
 with open(file_name, 'a') as f:
     for i,key in enumerate(api_param):
-        #print(i)
-        f.write(key)
-        if i < len(api_param) - 1:
-            f.write(',')
-    f.write('\n')
+        string = string + key + ','
+    if 'changed_files' in api_param.values():
+        for i in range(max_changed_files):
+            for j, key in enumerate(file_param):
+                string = string + key + str(i + 1) +','
+    string = string[:-1] + '\n'
+    f.write(string)
 f.closed
 
-string = ''
 
+#ここからメインの処理
 #プルリクエストを取得
 #プルリクの数だけループを回す
+string = ''
 for i in range(1,max_pr+1):
-    print('a:' + str(i)) #エラー確認用に一時的に出力
+    #print('a:' + str(i)) #エラー確認用に一時的に出力
     github_url = 'https://api.github.com/repos/%s/%s/pulls/' % (owner,repo) + str(i)
-    payload={'access_token':access_token}
+    payload={'access_token':access_token, 'per_page':pager}
     res = requests.get(github_url,params=payload)
     pr_json_data = json.loads(res.text) #個別PRのjson_dataは辞書型
     #print(pr_json_data) #エラー確認用に一時的に出力
@@ -130,7 +144,7 @@ for i in range(1,max_pr+1):
 
         #1つのプルリクの中の項目を取りたい項目(api_param)だけ取得する
         for j,value in enumerate(api_param):
-            print('b:' + str(i) + '-' + str(j)) #エラー確認用に一時的に出力
+            #print('b:' + str(i) + '-' + str(j)) #エラー確認用に一時的に出力
             #print(api_param[value]) #エラー確認用に一時的に出力
             if isinstance(api_param[value],list) == 1: #取りたいJSONが二段だった場合(二段まで対応)
                 #print(pr_json_data[api_param[value][0]][api_param[value][1]]) #エラー確認用に一時的に出力
@@ -145,13 +159,14 @@ for i in range(1,max_pr+1):
 
         #changed_filesがあった場合の追加処理
         if 'changed_files' in api_param.values():
-            change_file = check_change_file(access_token, github_url, pr_json_data['changed_files'], file_param) #change_fileは
+            change_file = check_change_file(access_token, github_url, pr_json_data['changed_files'], file_param,pager)
 
             #changed_filesの数だけ内容を取得する
             for k in range(pr_json_data['changed_files']):
-                print('c:' + str(i) + '-' + str(j) + '-' + str(k))
+                #print('c:' + str(i) + '-' + str(j) + '-' + str(k))
                 for value in file_param.values():
                     #print(value) #エラー確認用に一時的に出力
+                    #print(value)
                     if isinstance(change_file[k][value], int) == 1:  # 取ったデータが整数だった場合
                         string = string + str(change_file[k][value]) + ','
                     else:
@@ -166,4 +181,5 @@ for i in range(1,max_pr+1):
 #テスト用にファイルに出力
 f = open("output.json", "w")
 json.dump(pr_json_data, f, indent=4, sort_keys=True, separators=(',', ': '))
+f.closed
 '''
