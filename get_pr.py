@@ -27,16 +27,12 @@ def check_change_file(access_token,url,file_num,file_param,pager):
     return l
 
 #github関連変数の宣言
-#owner = input('Please type owner: ')
+owner = input('Please type owner: ')
 #owner = 'apc-kamibayashi'
-owner = 'tamac-io'
-#repo = input('Please type repository: ')
+repo = input('Please type repository: ')
 #repo = 'test'
-repo = 'logging-controller'
 #client_id = input('Please type client_id: ')
 #client_secret = input('Please type client_secret: ')
-client_id = '4a5f90677075bf99b238'
-client_secret = 'b42252db0dc96fe5aee331ed86bedb926cdac330'
 #socpe = input('Please type scope: ')
 scope = 'repo'#APIから取る値をリスト型で定義しておく
 
